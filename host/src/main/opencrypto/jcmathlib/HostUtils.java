@@ -3,7 +3,7 @@
 
 FLRSAhost Project
 
-Copyright (c) 2026 Mohamed BACHKAT
+Copyright (c) 2026 Anon22
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 
