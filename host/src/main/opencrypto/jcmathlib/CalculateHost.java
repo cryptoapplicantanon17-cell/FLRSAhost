@@ -201,7 +201,7 @@ public static final byte[] E_BYTES = {
             // 1. Generate a random 128-byte entity x
             byte[] x_bytes = new byte[KEY_SIZE_BYTES]; 
             new SecureRandom().nextBytes(x_bytes);
-            //System.out.println("Entity x (" + KEY_SIZE_BYTES + " bytes) randomly generated.");
+            System.out.println("Entity x (" + KEY_SIZE_BYTES + " bytes) randomly generated.");
 ul
             // 2. Calcul execution
             doComplexCalculation(apduChannel, x_bytes); 
