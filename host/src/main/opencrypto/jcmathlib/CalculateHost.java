@@ -196,7 +196,6 @@ public static final byte[] E_BYTES = {
             System.out.println("Card connection established for CALCULATION.");
 
             // --- Calculation Step ---
-            //System.out.println("\nDéclenchement du Calcul Complexe (CLA=80, INS=03) ---");
             System.out.println("\nSignature FLRSA (CLA=80, INS=03) ---");
            
             // 1. Generate a random 128-byte entity x
