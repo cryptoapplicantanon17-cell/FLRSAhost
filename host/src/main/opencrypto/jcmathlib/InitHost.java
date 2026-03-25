@@ -48,10 +48,8 @@ import apdu4j.core.CommandAPDU;
 import apdu4j.core.ResponseAPDU;
 import apdu4j.core.BIBO;
 
-// Import GPCardKeys pour la nouvelle structure
 // Import GPCardKeys for the new structure
 import pro.javacard.gp.GPCardKeys;
-// L'implémentation concrète est ici :
 // Concrete implementation is here:
 import pro.javacard.gp.GPKeyInfo;
 import pro.javacard.capfile.AID;
@@ -84,7 +82,6 @@ class CardChannelToBIBOWrapper implements BIBO {
     @Override
     public byte[] transceive(byte[] command) {
         try {
-            // Utilisation du nom qualifié complet pour CommandAPDU standard
             // Using fully qualified name for standard CommandAPDU
             return channel.transmit(new javax.smartcardio.CommandAPDU(command)).getBytes();
         } catch (CardException e) {
@@ -99,7 +96,6 @@ class CardChannelToBIBOWrapper implements BIBO {
     }
 }
 public class InitHost {
-    // Clés de Master Key Set 01 (version 0)
     // Master Key Set 01 (version 0) keys
     private static final int KEY_VERSION = 0; 
     
@@ -112,21 +108,17 @@ public class InitHost {
     // Key DEK (4041...4F)
     private static final byte[] KEY_DEK_BYTES = hexStringToByteArray("404142434445464748494A4B4C4D4E4F");
     
-    // AID de l'Applet à sélectionner
     // Applet AID to be selected
     public static final AID APPLET_AID = new AID(hex2bin("4A434D6174684C69625554"));
-    // AID de l'ISD (Cible de l'authentification GlobalPlatform)
     // ISD AID (Target for GlobalPlatform authentication)
     public static final AID DEFAULT_ISD_AID = new AID(hex2bin("A000000151000000")); 
 
    
-    // --- Constantes APDU pour le Provisioning ---
     // --- APDU Constants for Provisioning ---
     private static final byte CLA = (byte) 0xB0;
     private static final byte INS_INIT = (byte) 0x10;
     private static final short KEY_SIZE_BYTES = 128; // 128 bytes
 
-    // --- Constantes extraites et provisionnées ---
     // --- Extracted and Provisioned Constants ---
   public static final byte[] N_BYTES = {
     // ----------------------------------------------------
@@ -220,26 +212,17 @@ public static final byte[] INV6_BYTES = {
            
             APDUBIBO apduChannel = new APDUBIBO(new CardChannelToBIBOWrapper(card.getBasicChannel()));
 
-            System.out.println(" Connexion à la carte établie pour l'INITIALISATION.");
-
-            // Étape d'Initialisation : Écriture en EEPROM (4 APDU successives)
-            //System.out.println("\n--- Initialisation des 4 Constantes en EEPROM (INS_INIT) ---");
-            // Initialization Step: Writing to EEPROM (4 successive APDUs)
+         
+            System.out.println(" Card connexion established for Initialisation.");
             System.out.println("\n--- Initializing 4 Constants in EEPROM (INS_INIT) ---");
             initializeBigNat(apduChannel, (byte) 0x01, N_BYTES, "n"); 
             initializeBigNat(apduChannel, (byte) 0x02, COEFF2_BYTES, "coeff2");
             initializeBigNat(apduChannel, (byte) 0x03, INV6_BYTES, "inv6");
             initializeBigNat(apduChannel, (byte) 0x04, DELTA_BYTES, "delta");
-            //System.out.println(" INITIALISATION TERMINÉE. Les constantes sont persistantes.");
             System.out.println(" INITIALIZATION COMPLETE. Constants are now persistent.");
             
             card.disconnect(false);
-            //System.out.println("\n Déconnexion de la carte.");
             System.out.println("\n Disconnecting from card.");
-       /* } catch (Exception e) {
-            System.err.println("\n Erreur critique lors de l'initialisation : " + e.getMessage());
-            e.printStackTrace(); // Affiche la trace complète en cas d'erreur non gérée localement
-        }*/
         } catch (Exception e) {
             System.err.println("\n Critical error during initialization: " + e.getMessage());
             e.printStackTrace(); // Displays the full stack trace for unhandled local errors
@@ -259,7 +242,6 @@ public static final byte[] INV6_BYTES = {
         GPSession session = new GPSession(apduchannel, (DEFAULT_ISD_AID));
         System.out.println("GPSession ok");  
         
-        // Niveau de sécurité MAC et ENC (Nécessaire pour les données sensibles)
         // MAC and ENC security level (Required for sensitive data)
         EnumSet<APDUMode> securityLevel =  EnumSet.of(APDUMode.MAC, APDUMode.ENC);
         System.out.println("Sélection manuelle de l'ISD " + DEFAULT_ISD_AID + "...");
@@ -290,7 +272,6 @@ public static final byte[] INV6_BYTES = {
             return; 
         }     
        
-        // ÉTAPE CRUCIALE: Sélection de l'Applet après ouverture du canal sécurisé avec l'ISD
         // CRITICAL STEP: Selecting the Applet after opening the secure channel with the ISD
         System.out.println("Applet selected " + APPLET_AID + "...");
         apdu4j.core.ResponseAPDU selectResponse;
@@ -299,7 +280,6 @@ public static final byte[] INV6_BYTES = {
         
         CommandAPDU selectApdu = new CommandAPDU(0x00, 0xA4, 0x04, 0x00, APPLET_AID.getBytes());
       
-    // Utilisation de session.transmit() (qui est sécurisé)
     // Using session.transmit() (which is secure)
             byte[] rawResponse1 = apduchannel.transceive(selectApdu.getBytes());
             selectResponse = new ResponseAPDU(rawResponse1);
@@ -321,12 +301,9 @@ public static final byte[] INV6_BYTES = {
         CommandAPDU initApdu = new CommandAPDU(CLA, INS_INIT, p1, 0x00, data);
         
         
-        // ÉTAPE 3: Transmission de l'APDU de Provisionnement sécurisée
         // STEP 3: Secure Provisioning APDU Transmission
         apdu4j.core.ResponseAPDU response;
         
-            // Cette APDU sera automatiquement sécurisée (MAC/ENC) car la session est ouverte en mode MAC, ENC
-            // GPSession.transmit() est déclarée lancer IOException, donc ce try/catch est correct.
             // This APDU will be automatically secured (MAC/ENC) because the session is opened in MAC, ENC mode
             // GPSession.transmit() is declared to throw IOException, so this try/catch block is correct  
             byte[] rawResponse2 = apduchannel.transceive(initApdu.getBytes());
@@ -334,15 +311,12 @@ public static final byte[] INV6_BYTES = {
             
       
         if (response.getSW() == 0x9000) {
-            //System.out.println("   - Constante " + name + " (P1=0x" + Integer.toHexString(p1) + ") initialisée (SW: 9000)");
             System.out.println("   - Constant " + name + " (P1=0x" + Integer.toHexString(p1) + ") initialized (SW: 9000)");
         } else {
-            //System.err.println("   -  Échec de l'initialisation de " + name + " (SW: " + Integer.toHexString(response.getSW()) + ")");
             System.err.println("   - Failed to initialize " + name + " (SW: " + Integer.toHexString(response.getSW()) + ")");
             throw new CardException("Initialisation failed for constant " + name + ".");
         }
     }
-    // --- Fonction Utilitaire pour la conversion ---
     // --- Utility Function for Conversion ---
 private static byte[] hexStringToByteArray(String s) {
     int len = s.length();
