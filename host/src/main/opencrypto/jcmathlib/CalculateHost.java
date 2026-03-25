@@ -73,7 +73,6 @@ public class CalculateHost {
 
     private static final int KEY_VERSION = 0; 
     
-    // Clés par défaut (4041...4F)
     // Default keys
     private static final byte[] KEY_ENC_BYTES = hexStringToByteArray("404142434445464748494A4B4C4D4E4F");
     private static final byte[] KEY_MAC_BYTES = hexStringToByteArray("404142434445464748494A4B4C4D4E4F");
@@ -180,7 +179,6 @@ public static final byte[] E_BYTES = {
     (byte) 0x1C, (byte) 0x7C, (byte) 0x92, (byte) 0x58, (byte) 0x3E, (byte) 0xCD, (byte) 0x87, (byte) 0xF9  // 120 - 127
 };
     
-    // --- Constantes APDU pour le Calcul (ORIGINALES) ---
     // --- APDU Constants for Calculation (ORIGINAL) ---
     private static final byte CLA_CALC = (byte) 0x80; 
     private static final byte INS_DO_CALC = (byte) 0x03;
@@ -195,35 +193,29 @@ public static final byte[] E_BYTES = {
             
              APDUBIBO apduChannel = new APDUBIBO(new CardChannelToBIBOWrapper(card.getBasicChannel())); 
             
-            //System.out.println("Connexion à la carte établie pour le CALCUL.");
             System.out.println("Card connection established for CALCULATION.");
 
-            // --- Phase de Calcul ---
             // --- Calculation Step ---
-            System.out.println("\nDéclenchement du Calcul Complexe (CLA=80, INS=03) ---");
-            
-            // 1. Générer une entité x aléatoire de 128 bytes
+            //System.out.println("\nDéclenchement du Calcul Complexe (CLA=80, INS=03) ---");
+            System.out.println("\nSignature FLRSA (CLA=80, INS=03) ---");
+           
             // 1. Generate a random 128-byte entity x
             byte[] x_bytes = new byte[KEY_SIZE_BYTES]; 
             new SecureRandom().nextBytes(x_bytes);
-            System.out.println("Entité x (" + KEY_SIZE_BYTES + " bytes) randomly generated.");
-
-            // 2. Exécuter le calcul
+            System.out.println("Entity x (" + KEY_SIZE_BYTES + " bytes) randomly generated.");
+ul
+            // 2. Calcul execution
             doComplexCalculation(apduChannel, x_bytes); 
 
             card.disconnect(false);
             System.out.println("\nCard disconnected.");
             
         } catch (Exception e) {
-         //   System.err.println("\nErreur critique lors du calcul : " + e.getMessage());
          System.err.println("\nCritical error during calculation: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    /**
-     * Déclenche l'APDU INS_DO_CALC avec l'entité x en DATA.
-     */
     /**
      * Triggers the INS_DO_CALC APDU with entity x as DATA.
     */
@@ -232,21 +224,16 @@ public static final byte[] E_BYTES = {
         PlaintextKeys keys = PlaintextKeys.fromKeys(KEY_ENC_BYTES, KEY_MAC_BYTES, KEY_DEK_BYTES);
         keys.setVersion(KEY_VERSION);
         
-        // La session est créée avec l'AID de l'ISD pour l'authentification
         // Session created with the ISD AID for authentication   
         GPSession session = new GPSession(apduchannel, DEFAULT_ISD_AID);
         
-        // Mode de session à MAC SEULEMENT (pour l'étape 2)
         // Session mode: MAC ONLY (for step 2)   
         EnumSet<APDUMode> sessionSecurityLevel = EnumSet.of(APDUMode.MAC); 
         
-        // Déclaration des variables de réponse
         // Response variable declarations
         byte[] rawResponse;
         apdu4j.core.ResponseAPDU response;
         
-        // --- ÉTAPE 1: Sélection Manuelle de l'ISD (Mode PLAIN) ---
-       // System.out.println("Sélection manuelle de l'ISD " + DEFAULT_ISD_AID + "...");
        // --- STEP 1: Manual ISD Selection (PLAIN Mode) ---
        System.out.println("Manually selecting ISD " + DEFAULT_ISD_AID + "..."); 
         CommandAPDU isdSelectApdu = new CommandAPDU(0x00, 0xA4, 0x04, 0x00, DEFAULT_ISD_AID.getBytes());
@@ -254,32 +241,17 @@ public static final byte[] E_BYTES = {
             rawResponse = apduchannel.transceive(isdSelectApdu.getBytes());
             ResponseAPDU isdSelectResponse = new ResponseAPDU(rawResponse);
             if (isdSelectResponse.getSW() != 0x9000) {
-                //System.err.println("   - Échec de la sélection de l'ISD (SW: " + Integer.toHexString(isdSelectResponse.getSW()) + ")");
                 System.err.println("   - ISD selection failed (SW: " + Integer.toHexString(isdSelectResponse.getSW()) + ")");
                 throw new CardException("ISD selection failed before secure channel open.");
             }
             System.out.println("   - ISD selected (SW: 9000)");
         } catch (RuntimeException e) { 
          
-             //System.err.println("   - Erreur de transmission de la sélection de l'ISD: " + e.getMessage());
              System.err.println("   - ISD selection transmission error: " + e.getMessage());
              throw new CardException("ISD selection failed.", e);
         }
 
-        // --- ÉTAPE 2: Ouverture du Canal Sécurisé (sur l'ISD) ---
         // --- STEP 2: Opening Secure Channel (on ISD) ---
-       /* try {
-            System.out.println("Ouverture Session Sécurisée (MAC SEULEMENT pour établissement)...");
-            session.openSecureChannel(keys,
-            new GPSecureChannelVersion(GPSecureChannelVersion.SCP.SCP03, KEY_VERSION),
-            null,
-            sessionSecurityLevel); 
-            System.out.println("Session Sécurisée OK (MAC SEULEMENT).");
-        } catch (Exception e) { 
-             System.err.println("Échec de l'ouverture du canal sécurisé. Erreur: " + e.getMessage());
-             e.printStackTrace();
-             throw new CardException("Échec de l'ouverture du canal sécurisé.", e);
-        } */
       try {
             System.out.println("Opening Secure Session (MAC ONLY for establishment)...");
             session.openSecureChannel(keys,
@@ -297,48 +269,29 @@ public static final byte[] E_BYTES = {
 
 
      
-        // --- ÉTAPE 3: Sélection de l'Applet (Mode PLAIN) ---
-        //System.out.println("Sélection de l'Applet " + APPLET_AID + "...");
         // --- STEP 3: Applet Selection (PLAIN Mode) ---
         System.out.println("Selecting Applet " + APPLET_AID + "...");
         CommandAPDU selectApdu = new CommandAPDU(0x00, 0xA4, 0x04, 0x00, APPLET_AID.getBytes());
         
         try {
-            // Utiliser le canal APDU brut (PLAIN) pour la sélection de l'Applet
             // Use raw APDU channel (PLAIN) for Applet selection
             rawResponse = apduchannel.transceive(selectApdu.getBytes()); 
             ResponseAPDU selectResponse = new ResponseAPDU(rawResponse);
             
             if (selectResponse.getSW() != 0x9000) {
-                 //System.err.println("   - Échec de la sélection de l'Applet (SW: " + Integer.toHexString(selectResponse.getSW()) + ")");
                  System.err.println("   - Applet selection failed (SW: " + Integer.toHexString(selectResponse.getSW()) + ")");
                  throw new CardException("Applet selection failed in secure channel.");
             }
-            //System.out.println("   - Applet sélectionnée (SW: 9000)");
             System.out.println("   - Applet selected (SW: 9000)");
         } catch (RuntimeException e) { 
-             //System.err.println("   - Erreur de transmission de la sélection de l'Applet: " + e.getMessage());
              System.err.println("   - Applet selection transmission error: " + e.getMessage());
              throw new CardException("Applet selection failed (IO Error).", e);
         }
 
 
-        // --- ÉTAPE 4: Transmission de la commande de Calcul (SECURISÉE via session.transmit()) ---
         // --- STEP 4: Transmission of the Calculation Command (SECURED via session.transmit()) ---      
         CommandAPDU calcApdu = new CommandAPDU(CLA_CALC, INS_DO_CALC, 0x00, 0x00, x_data); 
         
-        /* try {
-            System.out.println("Envoi de la commande de Calcul (80 03 00 00) via canal sécurisé (session.transmit())...");
-            // REVERT : Réutilisation de session.transmit() (corrige 7010)
-            // Cette méthode sécurise l'APDU avec MAC (défini à l'étape 2)
-            response = session.transmit(calcApdu);
-        
-       
-        } catch (IOException e) { 
-            System.err.println("Erreur de transmission pour la commande de calcul.");
-            e.printStackTrace();
-            throw new CardException("Calcul failed due to secure channel error.", e);
-        } */
         try {
         System.out.println("Sending Calculation command (80 03 00 00) via secure channel (session.transmit())...");
         // REVERT: Reusing session.transmit() (fixes 7010)
@@ -356,14 +309,11 @@ public static final byte[] E_BYTES = {
 
 
         if (response.getSW() != 0x9000) {
-            //System.err.println("Échec de l'exécution du calcul (SW: " + Integer.toHexString(response.getSW()) + ")");
-            // On s'attend à ce que le 6D00 revienne ici.
             System.err.println("Calculation execution failed (SW: " + Integer.toHexString(response.getSW()) + ")");
            // 6D00 is expected to be returned here.
             return;
         }
 
-        // Récupérer et afficher le résultat
         // Retrieve and display the result
         byte[] resultBytes = response.getData();
         BigInteger n = new BigInteger(1, N_BYTES);
@@ -382,28 +332,6 @@ public static final byte[] E_BYTES = {
 
 
         BigInteger resultOnCard = new BigInteger(1, resultBytes);
-     /*  
-        System.out.println("\nRÉSULTAT REÇU ---");
-        System.out.println("Longueur : " + resultBytes.length + " bytes");
-        // Afficher seulement le début pour lisibilité
-        String hexResult = resultOnCard.toString(16);
-        System.out.println("Début du résultat (hex) : " + (hexResult.length() > 40 ? hexResult.substring(0, 40) + "..." : hexResult));
-        System.out.println("Succès (SW: 9000).");
-
-        String hexResultcomp = result.toString(16);
-        System.out.println("Début du résultat (hex) : " + (hexResultcomp.length() > 40 ? hexResultcomp.substring(0, 40) + "..." : hexResultcomp));
-        System.out.println("Succès (SW: 9000).");
-
-        
-        String hexx = x.toString(16);
-        System.out.println("Début du résultat (hex) : " + (hexx.length() > 40 ? hexx.substring(0, 40) + "..." : hexx));
-        System.out.println("Succès (SW: 9000).");
-
-        String hexidentifiantx =identifiantx.toString(16);
-        System.out.println("Début du résultat (hex) : " + (hexidentifiantx.length() > 40 ? hexidentifiantx.substring(0, 40) + "..." : hexidentifiantx));
-        System.out.println("Succès (SW: 9000).");
-
-*/
         System.out.println("\n--- RESULT RECEIVED ---");
         System.out.println("Length: " + resultBytes.length + " bytes");
         
@@ -433,7 +361,6 @@ public static final byte[] E_BYTES = {
         
     }
     
-    // --- Fonction Utilitaire pour la conversion Hex -> Byte[] ---
     // --- Utility Function for Hex -> Byte[] conversion ---
     private static byte[] hexStringToByteArray(String s) {
         int len = s.length();
@@ -450,7 +377,6 @@ public static final byte[] E_BYTES = {
 
     public static BigInteger calculateT(BigInteger x, BigInteger n, BigInteger coeff2, BigInteger inv6, BigInteger delta) {
         
-        // La formule à implémenter est: T = (((x^3 - x) * coeff2 * inv6) + x) mod n
         // formula to implement is : T = (((x^3 - x) * coeff2 * inv6) + x) mod n
         // 1. x^3
         BigInteger x_cubed = x.pow(3);
