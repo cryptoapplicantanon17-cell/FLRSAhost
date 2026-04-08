@@ -50,5 +50,5 @@ Sets up the RSA parameters and prepares the card environment:
 gradle RunInit
 
 #### 2. Calculation
-Executes the optimized RSA calculation logic (Please, retry the command serveral times) :
+Executes the optimized RSA calculation logic (Please, retry the command several times) :
 gradle RunCalc
