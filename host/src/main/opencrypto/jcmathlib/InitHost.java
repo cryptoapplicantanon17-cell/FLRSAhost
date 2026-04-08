@@ -95,6 +95,7 @@ class CardChannelToBIBOWrapper implements BIBO {
         // Optionnal
     }
 }
+// Care the numbers are the same for your card
 public class InitHost {
     // Master Key Set 01 (version 0) keys
     private static final int KEY_VERSION = 0; 
