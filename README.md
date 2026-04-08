@@ -32,7 +32,7 @@ To use this host application, you must first deploy the applet onto your physica
 Open a terminal in your GlobalPlatform directory and run these commands:
 
 > [!WARNING]
-> Ensure your card reader is connected. Adjust the `-key` parameter if your card uses non-default transport keys.
+> Ensure your card reader is connected. Adjust the `-key` parameter if your card uses non-default transport keys. Be careful the ISD and the Aid is the same for your card or modify.
 
 #### Delete existing instance/package (if present)
 java -jar gp.jar -key default -delete 4A434D6174684C6962 -f
